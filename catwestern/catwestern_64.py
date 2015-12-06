@@ -238,11 +238,7 @@ def checkData( code ):
         if submission[ss] != solution[ss]:
             badSolution()
 
-<<<<<<< HEAD
-    f = open('/home/hj/defcon/catwestern/flag', 'rb')
-=======
     f = open('./flag', 'rb')
->>>>>>> d3dfe6f4cdbd9e3b73de712ea06ae17884b60d25
     flag = f.read()
     f.close()
 
