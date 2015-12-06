@@ -1,0 +1,7 @@
+babyecho
+
+Not that this needs a lot of explaination, but obviously the service implmenets a format string vulnerability simply echoing back whatever it receives.
+
+The service starts off only accepting up to 13 bytes.  This is just enough to allow the teams to craft a format string to overwrite the read length variable.  And, it's only long enough to let them make that length variable around 103 characters.  If they need more bytes for their subsequent attacks, they can re-run the length overwrite using the increased string length from the first attack (up to 1023 bytes).
+
+Once they have a sufficiently large read length, they can proceed with the exploit.  On the stack, adjacent to the format string is a pointer to the format string itself.  The teams can use a format string read to obtain that value.  Then, they can use that to calculate the offset to saved EIP.  Next they overwrite saved EIP with the addr of the buffer, load in their shellcode and the overwrite the 'done' variable which ends the while() loop and returns from main() passing control to their shellcode.
