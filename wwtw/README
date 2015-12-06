@@ -1,0 +1,13 @@
+Wibbly Wobbly Timey Wimey (Dr. Who reference)
+
+This service is a mash-up of several different skill requirements.  
+
+It starts off with a silly game where the team must navigate through a game board filled with "Angels" to find their way to the TARDIS.  The Angels move when not faced (much like the ones from Dr Who).  This could be gorilla coded, but really, there's nothing stopping the teams from just playing through this game manually.  There are only 5 levels before they find the TARDIS.
+
+Once they find it, they are prompted for the TARDIS key.  This requires a small amount of RE work.  The key is checked by the KeyCheck() function which reads the .text section bytes of function itself looking for alnum chars.  The password is 10 characters long.  So, the teams must find the first 10 alnum characters starting at the beginning of the KeyCheck function.
+
+After they've entered the correct key, they teams are presented with a menu which allows them to "Turn on the console" or "Leave the TARDIS".  If they attempt to turn on the console, they are told that it isn't the correct time.  The program reads its time from a 2nd, non-exploitable, binary running on the same system.  When the service starts, it connect()'s a UDP socket with the time server and gets its time set every 2 seconds.
+
+A one-byte overflow exists in the menu's read() function.  This overflow allows the teams to overwrite the UDP socket number.  If they overwrite it with '0', they can send via stdin a new 4-byte timestamp setting the service's time to a value which allows the console to be turned on.
+
+Once the console is turned on, they have the option to "Dematerialize".  This function allows a set of longitude/lattitude coordinates to be entered.  At which point the TARDIS will 'travel' to this location.  If, they enter the coordinates 51.492137, -0.192878 (hard-coded into the program), they can exploit a format string vulnerability in that portion of the program.  Using this vulnerability, they can get shell or read the flag file's contents.  As a point of interest, if you google those coordinates, you'll see a TARDIS easter egg Google put in maps.
