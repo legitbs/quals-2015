@@ -1,0 +1,27 @@
+tensixtyseven aka snmpv1
+
+This service implements an SNMPv1 agent.  The agent supports GET, SET and GETNEXT requests.  It has a default read-only 'public' community string that is hard-coded into the binary.  It also has a read-write community string that is randomly generated at the start of the service.
+
+A bug exists in the parsing of the GET request that allows reads past the normal end of a given object.  The SNMP community strings are stored in memory allocated through sequential calloc() calls with the 'public' community stored first, followed by the read-write community.  By using the GET bug, it is possible to obtain the read-write community needed for SET requests to the agent.
+
+A 2nd bug allows SET requests to write past their object's value which allows for the corruption of the heap objects which make up the SNMP MIB.
+
+Finally, one of the pre-initialized MIB objects incorrectly stores the address of the intended value rather than the value itself, leaking the lower 4 bytes of a stack address which can be used to calculate the offsets needed in the exploit.
+
+One possible exploit for this service would work like this:
+
+- Query the 1.3.8.1337 integer MIB object for the leaked stack address
+    Using this, calculate the offset to savedEIP for HandleSetRequest()
+- Using the GET overflow, read past the public community object (1.3.6.1.6.1.18.1.1.1.1.2) and obtain the read-write community
+- Create a new octet string object
+- Create a new integer object (which will be in memory just after the octet string object)
+- Use the SET bug to overflow the octet string value and re-write the integer object
+  Make that integer object an octet string object (by overwriting the type) and set its value pointer to the calculated savedEIP address
+- Read that integer object and obtain the value of savedEIP so that you now know a text section address which can be used to calculate offsets into libc
+- Build a (very small) ROP chain to read in the desired shellcode, mprotect the shellcode's page to rwx, and jump to it
+  The ROP chain needs to be very small because the SNMP packet size limit (127 bytes) imposed by the service dosn't allow much room after the necessary SNMP headers are created
+- SET the integer (now an object string) object's value to the contents of the ROP chain effectively placing it on top of the savedEIP of HandleSetRequest()
+- At the end of the SET, your shellcode should have executed and the program is now waiting in the shellcode's read()
+- Send your shellcode to the TCP connection
+- If all has gone well, your ROP chain will finish by mprotecting the shellcode's page and jumping to it.
+
